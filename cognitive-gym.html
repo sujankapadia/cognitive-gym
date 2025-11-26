@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Gym (Offline)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.263.1"
+      }
+    }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out forwards;
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            BookOpen, Eye, Brain, RotateCcw, Plus, Trash2, 
+            ChevronRight, Save, Activity, Calendar, Layers, HelpCircle, X 
+        } from 'lucide-react';
+
+        // --- LOCAL STORAGE MANAGER ---
+        const STORAGE_KEY = 'cognitive_gym_data';
+
+        const getLocalEntries = () => {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            return saved ? JSON.parse(saved) : [];
+        };
+
+        const deleteLocalEntry = (id) => {
+            const entries = getLocalEntries();
+            const updated = entries.filter(e => e.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            return updated;
+        };
+        
+        // Function to handle saving (new) or updating (existing)
+        const saveOrUpdateLocalEntry = (entry) => {
+            const entries = getLocalEntries();
+            
+            if (entry.id) {
+                // Update existing entry
+                const index = entries.findIndex(e => e.id === entry.id);
+                if (index !== -1) {
+                    entries[index] = {
+                        ...entries[index], // Maintain original fields like date/timestamp if not explicitly passed
+                        ...entry,
+                        timestamp: Date.now(), // Update timestamp to show recent activity
+                    };
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+                return entries;
+            } else {
+                // Save new entry
+                const newEntry = {
+                    id: Date.now().toString(),
+                    timestamp: Date.now(),
+                    date: new Date().toLocaleDateString(),
+                    ...entry
+                };
+                const updated = [newEntry, ...entries];
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+                return updated;
+            }
+        };
+
+        // --- Components ---
+
+        // 1. Navigation
+        const NavBar = ({ currentView, setView }) => {
+            const navItems = [
+                { id: 'dashboard', label: 'Gym', icon: Activity },
+                { id: 'observation', label: 'Observation', icon: Eye },
+                { id: 'reasoning', label: 'Reasoning', icon: Brain },
+                { id: 'reflection', label: 'Reflection', icon: RotateCcw },
+                { id: 'history', label: 'Log', icon: BookOpen },
+            ];
+
+            return (
+                <div className="bg-slate-900 text-slate-300 border-t border-slate-800 md:border-t-0 md:border-r md:h-screen md:w-20 flex md:flex-col justify-around md:justify-start items-center p-2 md:pt-8 fixed bottom-0 w-full md:static z-50">
+                    {navItems.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setView(item.id)}
+                            className={`p-3 rounded-xl mb-0 md:mb-6 transition-all duration-200 flex flex-col items-center gap-1 ${
+                                currentView === item.id 
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' 
+                                    : 'hover:bg-slate-800 hover:text-white'
+                            }`}
+                        >
+                            <item.icon size={24} />
+                            <span className="text-[10px] font-medium md:hidden">{item.label}</span>
+                        </button>
+                    ))}
+                </div>
+            );
+        };
+        
+        // 2. Edit Form Component
+        const EditEntryForm = ({ entry, onUpdate, onCancel, onDelete }) => {
+            const [localData, setLocalData] = useState(entry.data);
+            const pillarColor = entry.pillar === 'Observation' ? 'blue' : entry.pillar === 'Reasoning' ? 'purple' : 'orange';
+            const PillarIcon = entry.pillar === 'Observation' ? Eye : entry.pillar === 'Reasoning' ? Brain : RotateCcw;
+
+            const handleUpdate = () => {
+                onUpdate({ ...entry, data: localData });
+            };
+
+            const renderFields = () => {
+                switch (entry.type) {
+                    case 'observation_snapshot':
+                        return (
+                            <div className="space-y-4">
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Reality Snapshot</label>
+                                <textarea 
+                                    value={localData.text}
+                                    onChange={(e) => setLocalData({ ...localData, text: e.target.value })}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 resize-none"
+                                />
+                            </div>
+                        );
+                    case 'observation_story':
+                        return (
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-red-400 uppercase tracking-wider mb-2">The Story (Interpretation)</label>
+                                    <textarea 
+                                        value={localData.interpretation}
+                                        onChange={(e) => setLocalData({...localData, interpretation: e.target.value})}
+                                        className="w-full bg-slate-900 border border-red-900/30 rounded-lg p-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500 h-40 resize-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">The Reality (Facts)</label>
+                                    <textarea 
+                                        value={localData.reality}
+                                        onChange={(e) => setLocalData({...localData, reality: e.target.value})}
+                                        className="w-full bg-slate-900 border border-green-900/30 rounded-lg p-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-green-500 h-40 resize-none"
+                                    />
+                                </div>
+                            </div>
+                        );
+                    case 'reasoning_argument':
+                        return (
+                            <div className="space-y-4">
+                                {[
+                                    { key: 'claim', label: '1. The Claim' },
+                                    { key: 'why', label: '2. The Why' },
+                                    { key: 'evidence', label: '3. The Evidence' },
+                                    { key: 'counter', label: '4. The Counterargument' },
+                                    { key: 'rebuttal', label: '5. The Rebuttal' },
+                                ].map((field) => (
+                                    <div key={field.key}>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{field.label}</label>
+                                        <input 
+                                            value={localData[field.key]}
+                                            onChange={(e) => setLocalData({...localData, [field.key]: e.target.value})}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    case 'reasoning_variables':
+                        // Variables editing is complex, just display and allow re-log
+                        return (
+                            <div className="space-y-4">
+                                <p className="text-slate-400 text-sm italic">
+                                    Variable lists are best edited by deleting and re-logging, as the structure is complex.
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {localData.variables.map((v, i) => (
+                                        <span key={i} className={`text-xs px-3 py-1 rounded-full border ${v.type === 'important' ? 'border-green-800 text-green-300 bg-green-900/20' : 'border-slate-700 text-slate-500 line-through bg-slate-900'}`}>
+                                            {v.text}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    case 'reflection_review':
+                        return (
+                            <div className="space-y-4">
+                                {[
+                                    { key: 'well', label: 'What went well?' },
+                                    { key: 'bad', label: 'What didn’t go well?' },
+                                    { key: 'why', label: 'Why did it go that way?' },
+                                    { key: 'diff', label: 'What will I do differently tomorrow?' },
+                                    { key: 'learned', label: 'What did I learn?' },
+                                ].map((field) => (
+                                    <div key={field.key}>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{field.label}</label>
+                                        <textarea 
+                                            value={localData[field.key]}
+                                            onChange={(e) => setLocalData({...localData, [field.key]: e.target.value})}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 h-20 resize-none"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    case 'reflection_5whys':
+                        return (
+                            <div className="space-y-4">
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">The Issue</label>
+                                <input 
+                                    value={localData.issue}
+                                    onChange={(e) => setLocalData({...localData, issue: e.target.value})}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                                {localData.levels.map((ans, idx) => (
+                                    <div key={idx} className="transition-all duration-300">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="w-6 h-6 rounded-full bg-orange-900 text-orange-400 flex items-center justify-center text-xs font-bold">{idx + 1}</div>
+                                            <span className="text-orange-400 font-bold text-sm">WHY?</span>
+                                        </div>
+                                        <input 
+                                            value={ans}
+                                            onChange={(e) => {
+                                                const newLevels = [...localData.levels];
+                                                newLevels[idx] = e.target.value;
+                                                setLocalData({...localData, levels: newLevels});
+                                            }}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    default:
+                        return <p className="text-red-400">Unknown entry type: {entry.type}</p>;
+                }
+            };
+
+
+            return (
+                <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-2xl animate-fade-in">
+                    <div className="flex justify-between items-start mb-6 border-b border-slate-700 pb-4">
+                        <div className="flex items-center gap-3">
+                            <PillarIcon size={32} className={`text-${pillarColor}-400`} />
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Edit: {entry.title}</h2>
+                                <p className={`text-sm text-${pillarColor}-400`}>Pillar of {entry.pillar}</p>
+                            </div>
+                        </div>
+                        <button onClick={onCancel} className="p-2 rounded-full text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {renderFields()}
+
+                    <div className="mt-8 flex justify-between">
+                        <button onClick={() => onDelete(entry.id)} className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+                            <Trash2 size={18} /> Delete Entry
+                        </button>
+                        <button onClick={handleUpdate} className={`bg-${pillarColor}-600 hover:bg-${pillarColor}-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors`}>
+                            <Save size={18} /> Save Changes
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+        
+        // 3. Tools
+        const ObservationTool = ({ onSave }) => {
+            const [mode, setMode] = useState('snapshot'); // snapshot, story
+            const [snapshot, setSnapshot] = useState('');
+            const [story, setStory] = useState({ reality: '', interpretation: '' });
+
+            const handleSaveSnapshot = () => {
+                if (!snapshot.trim()) return;
+                onSave({
+                    type: 'observation_snapshot',
+                    title: 'Reality Snapshot',
+                    data: { text: snapshot },
+                    pillar: 'Observation'
+                });
+                setSnapshot('');
+            };
+
+            const handleSaveStory = () => {
+                if (!story.reality.trim() && !story.interpretation.trim()) return;
+                onSave({
+                    type: 'observation_story',
+                    title: 'Story vs Reality',
+                    data: story,
+                    pillar: 'Observation'
+                });
+                setStory({ reality: '', interpretation: '' });
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex space-x-2 bg-slate-800 p-1 rounded-lg w-fit">
+                        <button 
+                            onClick={() => setMode('snapshot')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'snapshot' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Snapshot
+                        </button>
+                        <button 
+                            onClick={() => setMode('story')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'story' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Remove the Story
+                        </button>
+                    </div>
+
+                    {mode === 'snapshot' ? (
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                <Eye size={20} className="text-blue-400" />
+                                What's Actually Happening?
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-4">
+                                Write exactly ONE sentence describing the situation without emotion or interpretation.
+                            </p>
+                            <textarea 
+                                value={snapshot}
+                                onChange={(e) => setSnapshot(e.target.value)}
+                                placeholder="e.g., I ate late because I didn't plan dinner."
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 resize-none"
+                            />
+                            <div className="mt-4 flex justify-end">
+                                <button onClick={handleSaveSnapshot} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+                                    <Save size={18} /> Log Snapshot
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                <Layers size={20} className="text-blue-400" />
+                                Story vs. Reality
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-6">
+                                Separate the bare facts from the narrative your ego is creating.
+                            </p>
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-bold text-red-400 uppercase tracking-wider mb-2">The Story (Interpretation)</label>
+                                    <textarea 
+                                        value={story.interpretation}
+                                        onChange={(e) => setStory({...story, interpretation: e.target.value})}
+                                        placeholder="I'm mad because my friend didn't text back..."
+                                        className="w-full bg-slate-900 border border-red-900/30 rounded-lg p-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-red-500 h-40 resize-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">The Reality (Facts)</label>
+                                    <textarea 
+                                        value={story.reality}
+                                        onChange={(e) => setStory({...story, reality: e.target.value})}
+                                        placeholder="My friend hasn't replied in 3 hours."
+                                        className="w-full bg-slate-900 border border-green-900/30 rounded-lg p-4 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-green-500 h-40 resize-none"
+                                    />
+                                </div>
+                            </div>
+                            <div className="mt-6 flex justify-end">
+                                <button onClick={handleSaveStory} className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+                                    <Save size={18} /> Log Analysis
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ReasoningTool = ({ onSave }) => {
+            const [mode, setMode] = useState('argument'); // argument, variables
+            const [argument, setArgument] = useState({ claim: '', why: '', evidence: '', counter: '', rebuttal: '' });
+            const [variableInput, setVariableInput] = useState('');
+            const [variables, setVariables] = useState([]);
+
+            const handleSaveArgument = () => {
+                if (!argument.claim.trim()) return;
+                onSave({
+                    type: 'reasoning_argument',
+                    title: '5-Sentence Argument',
+                    data: argument,
+                    pillar: 'Reasoning'
+                });
+                setArgument({ claim: '', why: '', evidence: '', counter: '', rebuttal: '' });
+            };
+
+            const addVariable = () => {
+                if(!variableInput.trim()) return;
+                setVariables([...variables, { text: variableInput, type: 'important' }]);
+                setVariableInput('');
+            }
+
+            const toggleVarType = (index) => {
+                const newVars = [...variables];
+                newVars[index].type = newVars[index].type === 'important' ? 'ignore' : 'important';
+                setVariables(newVars);
+            }
+
+            const removeVariable = (index) => {
+                const newVars = [...variables];
+                newVars.splice(index, 1);
+                setVariables(newVars);
+            }
+
+            const handleSaveVariables = () => {
+                if (variables.length === 0) return;
+                onSave({
+                    type: 'reasoning_variables',
+                    title: 'Variable Analysis',
+                    data: { variables },
+                    pillar: 'Reasoning'
+                });
+                setVariables([]);
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex space-x-2 bg-slate-800 p-1 rounded-lg w-fit">
+                        <button 
+                            onClick={() => setMode('argument')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'argument' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            5-Sentence Argument
+                        </button>
+                        <button 
+                            onClick={() => setMode('variables')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'variables' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Variables Game
+                        </button>
+                    </div>
+
+                    {mode === 'argument' ? (
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-4">
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                <Brain size={20} className="text-purple-400" />
+                                Build Your Argument
+                            </h3>
+                            {[
+                                { key: 'claim', label: '1. The Claim', ph: 'State your idea clearly.' },
+                                { key: 'why', label: '2. The Why', ph: 'Explain the logic behind it.' },
+                                { key: 'evidence', label: '3. The Evidence', ph: 'One fact or observation that supports it.' },
+                                { key: 'counter', label: '4. The Counterargument', ph: 'What is the strongest objection?' },
+                                { key: 'rebuttal', label: '5. The Rebuttal', ph: 'Why does your claim still stand?' },
+                            ].map((field) => (
+                                <div key={field.key}>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{field.label}</label>
+                                    <input 
+                                        value={argument[field.key]}
+                                        onChange={(e) => setArgument({...argument, [field.key]: e.target.value})}
+                                        placeholder={field.ph}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    />
+                                </div>
+                            ))}
+                            <div className="pt-4 flex justify-end">
+                                <button onClick={handleSaveArgument} className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+                                    <Save size={18} /> Log Argument
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                <Activity size={20} className="text-purple-400" />
+                                Variable Identification
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-4">List all factors in your decision, then toggle them to "Ignore" if they don't matter.</p>
+                            
+                            <div className="flex gap-2 mb-6">
+                                <input 
+                                    value={variableInput}
+                                    onChange={(e) => setVariableInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && addVariable()}
+                                    placeholder="Add a variable (e.g., Cost, Time, Ego)..."
+                                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                />
+                                <button onClick={addVariable} className="bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-lg">
+                                    <Plus size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-2 mb-6">
+                                {variables.map((v, idx) => (
+                                    <div key={idx} className="flex items-center justify-between bg-slate-900 p-3 rounded-lg border border-slate-700">
+                                        <span className={`flex-1 ${v.type === 'ignore' ? 'text-slate-500 line-through' : 'text-white'}`}>{v.text}</span>
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => toggleVarType(idx)}
+                                                className={`text-xs px-2 py-1 rounded ${v.type === 'important' ? 'bg-green-900 text-green-300' : 'bg-slate-700 text-slate-400'}`}
+                                            >
+                                                {v.type === 'important' ? 'CRITICAL' : 'IGNORE'}
+                                            </button>
+                                            <button onClick={() => removeVariable(idx)} className="text-red-400 hover:text-red-300 p-1">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {variables.length === 0 && <div className="text-center text-slate-600 py-4">No variables listed yet.</div>}
+                            </div>
+
+                            <div className="flex justify-end">
+                                <button onClick={handleSaveVariables} className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+                                    <Save size={18} /> Save Analysis
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ReflectionTool = ({ onSave }) => {
+            const [mode, setMode] = useState('review'); // review, 5whys
+            const [review, setReview] = useState({ well: '', bad: '', why: '', diff: '', learned: '' });
+            
+            // 5 Whys State
+            const [whys, setWhys] = useState({ issue: '', levels: ['', '', '', '', ''] });
+            const [currentWhyLevel, setCurrentWhyLevel] = useState(0);
+
+            const handleSaveReview = () => {
+                if (!review.well.trim()) return;
+                onSave({
+                    type: 'reflection_review',
+                    title: 'Evening Review',
+                    data: review,
+                    pillar: 'Reflection'
+                });
+                setReview({ well: '', bad: '', why: '', diff: '', learned: '' });
+            };
+
+            const updateWhy = (val) => {
+                const newLevels = [...whys.levels];
+                newLevels[currentWhyLevel] = val;
+                setWhys({...whys, levels: newLevels});
+            }
+
+            const handleNextWhy = () => {
+                if (currentWhyLevel < 4) setCurrentWhyLevel(currentWhyLevel + 1);
+            }
+
+            const handleSaveWhys = () => {
+                if (!whys.issue.trim()) return;
+                onSave({
+                    type: 'reflection_5whys',
+                    title: '5 Whys Analysis',
+                    data: whys,
+                    pillar: 'Reflection'
+                });
+                setWhys({ issue: '', levels: ['', '', '', '', ''] });
+                setCurrentWhyLevel(0);
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="flex space-x-2 bg-slate-800 p-1 rounded-lg w-fit">
+                        <button 
+                            onClick={() => setMode('review')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'review' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            Evening Review
+                        </button>
+                        <button 
+                            onClick={() => setMode('5whys')}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === '5whys' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            5 Whys Drill
+                        </button>
+                    </div>
+
+                    {mode === 'review' ? (
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-4">
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                <RotateCcw size={20} className="text-orange-400" />
+                                Daily Reflection
+                            </h3>
+                            {[
+                                { key: 'well', label: 'What went well?', ph: 'Small wins count.' },
+                                { key: 'bad', label: 'What didn’t go well?', ph: 'Be honest.' },
+                                { key: 'why', label: 'Why did it go that way?', ph: 'Identify the cause.' },
+                                { key: 'diff', label: 'What will I do differently tomorrow?', ph: 'Actionable change.' },
+                                { key: 'learned', label: 'What did I learn?', ph: 'Takeaway.' },
+                            ].map((field) => (
+                                <div key={field.key}>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{field.label}</label>
+                                    <textarea 
+                                        value={review[field.key]}
+                                        onChange={(e) => setReview({...review, [field.key]: e.target.value})}
+                                        placeholder={field.ph}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500 h-20 resize-none"
+                                    />
+                                </div>
+                            ))}
+                            <div className="pt-4 flex justify-end">
+                                <button onClick={handleSaveReview} className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors">
+                                    <Save size={18} /> Save Review
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl">
+                            <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                                <HelpCircle size={20} className="text-orange-400" />
+                                Root Cause Analysis (5 Whys)
+                            </h3>
+                            <div className="mb-6">
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">The Issue</label>
+                                <input 
+                                    value={whys.issue}
+                                    onChange={(e) => setWhys({...whys, issue: e.target.value})}
+                                    placeholder="e.g., I procrastinated on the report."
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                />
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {whys.levels.map((ans, idx) => (
+                                    <div key={idx} className={`transition-all duration-300 ${idx > currentWhyLevel ? 'opacity-30 blur-[1px] pointer-events-none' : 'opacity-100'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="w-6 h-6 rounded-full bg-orange-900 text-orange-400 flex items-center justify-center text-xs font-bold">
+                                                {idx + 1}
+                                            </div>
+                                            <span className="text-orange-400 font-bold text-sm">WHY?</span>
+                                        </div>
+                                        <input 
+                                            value={ans}
+                                            onChange={(e) => {
+                                                const newLevels = [...whys.levels];
+                                                newLevels[idx] = e.target.value;
+                                                setWhys({...whys, levels: newLevels});
+                                            }}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="mt-8 flex justify-between">
+                                {currentWhyLevel < 4 ? (
+                                    <button onClick={handleNextWhy} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2">
+                                        Next Why <ChevronRight size={18}/>
+                                    </button>
+                                ) : (
+                                    <div className='flex-1'></div>
+                                )}
+                                <button onClick={handleSaveWhys} className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-2 rounded-lg font-medium flex items-center gap-2">
+                                    <Save size={18} /> Save Analysis
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const HistoryLog = ({ entries, onDelete, onEdit }) => {
+            return (
+                <div className="space-y-4 animate-fade-in max-w-4xl mx-auto">
+                    <h2 className="text-2xl font-bold text-white mb-6">Cognitive Workout Log</h2>
+                    {entries.length === 0 ? (
+                        <div className="text-center text-slate-500 py-12">
+                            <BookOpen size={48} className="mx-auto mb-4 opacity-20" />
+                            <p>No workouts recorded yet. Start training!</p>
+                        </div>
+                    ) : (
+                        entries.map((entry) => (
+                            <button 
+                                key={entry.id} 
+                                onClick={() => onEdit(entry)}
+                                className="w-full text-left bg-slate-800 border-l-4 border-slate-700 rounded-r-xl p-5 shadow-lg relative group hover:bg-slate-700/50 transition-colors cursor-pointer"
+                            >
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${
+                                    entry.pillar === 'Observation' ? 'bg-blue-500' : 
+                                    entry.pillar === 'Reasoning' ? 'bg-purple-500' : 'bg-orange-500'
+                                }`}></div>
+                                
+                                <span
+                                    className="absolute top-4 right-4 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Trash2 size={16} />
+                                </span>
+
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded bg-slate-900 text-slate-400`}>
+                                        {entry.pillar}
+                                    </span>
+                                    <span className="text-xs text-slate-500">{entry.date}</span>
+                                </div>
+                                
+                                <h3 className="text-lg font-bold text-white mb-3">{entry.title}</h3>
+                                
+                                <div className="text-slate-300 text-sm space-y-2">
+                                    {entry.type === 'observation_snapshot' && (
+                                        <p className="italic">"{entry.data.text.substring(0, 100)}{entry.data.text.length > 100 ? '...' : ''}"</p>
+                                    )}
+                                    {entry.type === 'observation_story' && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-red-900/10 p-2 rounded border border-red-900/20">
+                                                <div className="text-red-400 text-xs font-bold mb-1">STORY</div>
+                                                {entry.data.interpretation.substring(0, 50)}{entry.data.interpretation.length > 50 ? '...' : ''}
+                                            </div>
+                                            <div className="bg-green-900/10 p-2 rounded border border-green-900/20">
+                                                <div className="text-green-400 text-xs font-bold mb-1">REALITY</div>
+                                                {entry.data.reality.substring(0, 50)}{entry.data.reality.length > 50 ? '...' : ''}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {entry.type === 'reasoning_argument' && (
+                                        <p className="text-slate-400">{entry.data.claim.substring(0, 80)}{entry.data.claim.length > 80 ? '...' : ''}</p>
+                                    )}
+                                    {entry.type === 'reasoning_variables' && (
+                                        <p className="text-slate-400">Variables: {entry.data.variables.length} identified.</p>
+                                    )}
+                                    {entry.type === 'reflection_review' && (
+                                        <p className="text-slate-400">Went Well: {entry.data.well.substring(0, 80)}{entry.data.well.length > 80 ? '...' : ''}</p>
+                                    )}
+                                    {entry.type === 'reflection_5whys' && (
+                                        <p className="text-slate-400">Issue: {entry.data.issue.substring(0, 80)}{entry.data.issue.length > 80 ? '...' : ''}</p>
+                                    )}
+                                </div>
+                            </button>
+                        ))
+                    )}
+                </div>
+            );
+        };
+
+        // --- Main App Component ---
+        const App = () => {
+            const [view, setView] = useState('dashboard');
+            const [entries, setEntries] = useState([]);
+            const [editingEntry, setEditingEntry] = useState(null);
+
+            // Initial Load
+            useEffect(() => {
+                setEntries(getLocalEntries());
+            }, []);
+
+            const saveEntry = (entryData) => {
+                const updated = saveOrUpdateLocalEntry(entryData);
+                setEntries(updated);
+                setEditingEntry(null); // Clear editing state after save
+                setView('history');
+            };
+
+            const handleEdit = (entry) => {
+                setEditingEntry(entry);
+                setView('edit');
+            };
+
+            const handleDelete = (id) => {
+                // Since EditEntryForm handles delete, we redirect to history after deletion
+                const updated = deleteLocalEntry(id);
+                setEntries(updated);
+                setEditingEntry(null);
+                setView('history');
+            };
+
+            const getStats = () => {
+                const obs = entries.filter(e => e.pillar === 'Observation').length;
+                const reas = entries.filter(e => e.pillar === 'Reasoning').length;
+                const refl = entries.filter(e => e.pillar === 'Reflection').length;
+                return { obs, reas, refl, total: entries.length };
+            };
+            const stats = getStats();
+
+            return (
+                <div className="flex flex-col md:flex-row min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+                    <NavBar currentView={view} setView={setView} />
+                    
+                    <main className="flex-1 p-4 md:p-8 md:pb-8 pb-24 overflow-y-auto h-screen">
+                        <header className="flex justify-between items-center mb-8">
+                            <div>
+                                <h1 className="text-3xl font-black text-white tracking-tight">COGNITIVE<span className="text-blue-500">GYM</span></h1>
+                                <p className="text-slate-500 text-sm">Offline Training Regime</p>
+                            </div>
+                            <div className="hidden md:flex gap-4 text-xs font-mono">
+                                <button onClick={() => setView('history')} className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors">
+                                    <Eye size={14}/> {stats.obs}
+                                </button>
+                                <button onClick={() => setView('history')} className="flex items-center gap-1 text-purple-400 hover:text-purple-300 transition-colors">
+                                    <Brain size={14}/> {stats.reas}
+                                </button>
+                                <button onClick={() => setView('history')} className="flex items-center gap-1 text-orange-400 hover:text-orange-300 transition-colors">
+                                    <RotateCcw size={14}/> {stats.refl}
+                                </button>
+                            </div>
+                        </header>
+
+                        <div className="max-w-4xl mx-auto">
+                            {view === 'dashboard' && (
+                                <div className="animate-fade-in space-y-8">
+                                    <div className="grid md:grid-cols-3 gap-6">
+                                        <button onClick={() => setView('observation')} className="group bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl border border-slate-700 hover:border-blue-500/50 transition-all hover:shadow-lg hover:shadow-blue-900/20 text-left">
+                                            <div className="bg-blue-900/30 w-12 h-12 rounded-lg flex items-center justify-center text-blue-400 mb-4 group-hover:scale-110 transition-transform">
+                                                <Eye size={24} />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white mb-1">Observation</h3>
+                                            <p className="text-slate-400 text-sm">See reality clearly. Remove the ego filters.</p>
+                                        </button>
+
+                                        <button onClick={() => setView('reasoning')} className="group bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl border border-slate-700 hover:border-purple-500/50 transition-all hover:shadow-lg hover:shadow-purple-900/20 text-left">
+                                            <div className="bg-purple-900/30 w-12 h-12 rounded-lg flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition-transform">
+                                                <Brain size={24} />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white mb-1">Reasoning</h3>
+                                            <p className="text-slate-400 text-sm">Connect ideas logically. Build stronger arguments.</p>
+                                        </button>
+
+                                        <button onClick={() => setView('reflection')} className="group bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-2xl border border-slate-700 hover:border-orange-500/50 transition-all hover:shadow-lg hover:shadow-orange-900/20 text-left">
+                                            <div className="bg-orange-900/30 w-12 h-12 rounded-lg flex items-center justify-center text-orange-400 mb-4 group-hover:scale-110 transition-transform">
+                                                <RotateCcw size={24} />
+                                            </div>
+                                            <h3 className="text-xl font-bold text-white mb-1">Reflection</h3>
+                                            <p className="text-slate-400 text-sm">Evaluate actions. Lock in improvements.</p>
+                                        </button>
+                                    </div>
+
+                                    <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800">
+                                        <h3 className="text-white font-bold mb-4 flex items-center gap-2"><Calendar size={18}/> Recent Activity</h3>
+                                        <div className="space-y-3">
+                                            {entries.slice(0, 3).map(e => (
+                                                <div key={e.id} className="flex items-center justify-between text-sm p-3 bg-slate-900 rounded-lg border border-slate-800">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`w-2 h-2 rounded-full ${e.pillar === 'Observation' ? 'bg-blue-500' : e.pillar === 'Reasoning' ? 'bg-purple-500' : 'bg-orange-500'}`}></span>
+                                                        <span className="text-slate-300">{e.title}</span>
+                                                    </div>
+                                                    <span className="text-slate-500 text-xs">{e.date}</span>
+                                                </div>
+                                            ))}
+                                            {entries.length === 0 && <div className="text-slate-600 text-sm italic">No recent activity. Start a session above.</div>}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {view === 'observation' && (
+                                <div>
+                                    <div className="mb-6">
+                                        <h2 className="text-2xl font-bold text-white">Observation Lab</h2>
+                                        <p className="text-blue-400">Pillar 1: Seeing Reality</p>
+                                    </div>
+                                    <ObservationTool onSave={saveEntry} />
+                                </div>
+                            )}
+
+                            {view === 'reasoning' && (
+                                <div>
+                                    <div className="mb-6">
+                                        <h2 className="text-2xl font-bold text-white">Reasoning Engine</h2>
+                                        <p className="text-purple-400">Pillar 2: Logical Connection</p>
+                                    </div>
+                                    <ReasoningTool onSave={saveEntry} />
+                                </div>
+                            )}
+
+                            {view === 'reflection' && (
+                                <div>
+                                    <div className="mb-6">
+                                        <h2 className="text-2xl font-bold text-white">Reflection Station</h2>
+                                        <p className="text-orange-400">Pillar 3: Evaluation & Growth</p>
+                                    </div>
+                                    <ReflectionTool onSave={saveEntry} />
+                                </div>
+                            )}
+
+                            {view === 'history' && <HistoryLog entries={entries} onDelete={handleDelete} onEdit={handleEdit} />}
+                            
+                            {view === 'edit' && editingEntry && (
+                                <EditEntryForm 
+                                    entry={editingEntry} 
+                                    onUpdate={saveEntry} 
+                                    onCancel={() => setView('history')} 
+                                    onDelete={handleDelete}
+                                />
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
