@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The Cognitive Workout is a personal cognitive training application based on the "Three Pillars of Thinking" framework. The project consists of:
+The Cognitive Workout is a personal cognitive training application based on the "Foundation + Three Pillars of Thinking" framework. The project consists of:
 
-1. **Framework Documentation** (`three-pillars-of-thinking.md`) - Complete training methodology for developing observation, reasoning, and reflection skills
+1. **Framework Documentation** (`three-pillars-of-thinking.md`) - Complete training methodology for developing focus, observation, reasoning, and reflection skills
 2. **Web Application** (`cognitive-gym.html`) - Interactive training tool implementing the framework
 
 **Design Philosophy:**
 - **Zero friction**: Single HTML file, no build process, works offline immediately
 - **Privacy first**: All data stored locally in browser (localStorage), never leaves your machine
 - **Mobile-first**: Responsive design with touch-optimized navigation
-- **Visual consistency**: Color-coded pillars (Blue/Purple/Orange) create clear mental model
+- **Visual consistency**: Color-coded pillars (Teal/Blue/Purple/Orange) create clear mental model
 - **Progressive complexity**: Features like "5 Whys" reveal questions sequentially to reduce cognitive overwhelm
 
 ## Architecture
@@ -29,9 +29,13 @@ The application is built as a standalone HTML file with embedded React code:
 ### Core Components Structure
 
 **Navigation & Layout:**
-- `NavBar` (cognitive-gym.html:92-119) - Responsive navigation with fixed bottom bar on mobile, sidebar on desktop. 5 views: Dashboard, Observation, Reasoning, Reflection, History.
+- `NavBar` (cognitive-gym.html:92-120) - Responsive navigation with fixed bottom bar on mobile, sidebar on desktop. 6 views: Dashboard, Focus, Observation, Reasoning, Reflection, History.
 
 **Training Tools:**
+- `FocusTool` (cognitive-gym.html:679-906)
+  - Daily Focus Lock: Morning intention (primary focus, what to ignore, why) + Evening review (stuck to focus?, what pulled away, worth it?)
+  - Idea Triage: Capture ideas and sort into 3 buckets (Active Sprint, Waiting Room, Graveyard) with forced justification
+
 - `ObservationTool` (cognitive-gym.html:287-390)
   - Snapshot mode: Single reality observation without interpretation
   - Story vs Reality mode: Side-by-side comparison (red for story, green for reality)
@@ -59,12 +63,14 @@ All entries follow this structure:
   date: string,         // Localized date string
   type: string,         // Entry type identifier
   title: string,        // Display title
-  pillar: string,       // "Observation" | "Reasoning" | "Reflection"
+  pillar: string,       // "Focus" | "Observation" | "Reasoning" | "Reflection"
   data: object          // Type-specific data payload
 }
 ```
 
 Entry types:
+- `focus_daily` - Daily focus lock (morning intention + evening review)
+- `focus_triage` - Idea triage with bucket assignment and justification
 - `observation_snapshot` - Single reality observation
 - `observation_story` - Story vs reality comparison
 - `reasoning_argument` - 5-part logical argument
@@ -88,9 +94,10 @@ Since this is a single-file application with inline scripts:
 ### Testing Changes
 
 - Test localStorage persistence by creating entries, refreshing, and verifying data persists
-- Test all three pillars (Observation, Reasoning, Reflection) independently
+- Test all four pillars (Focus, Observation, Reasoning, Reflection) independently
 - Verify edit functionality works for all entry types
 - Check mobile responsiveness (responsive navigation uses fixed bottom bar on mobile)
+- Test Idea Triage bucket selection and reason validation
 
 ## Important Implementation Details
 
@@ -106,12 +113,17 @@ Three core functions manage persistence (cognitive-gym.html:44-87):
 **Color Palette:**
 - Base theme: `bg-slate-950` (dark background), `text-slate-200` (light text)
 - Pillar color coding (consistent across all UI elements):
+  - **Teal** (`bg-teal-600`, `text-teal-400`, `border-teal-500`) - Focus (Pillar 0)
   - **Blue** (`bg-blue-600`, `text-blue-400`, `border-blue-500`) - Observation
   - **Purple** (`bg-purple-600`, `text-purple-400`, `border-purple-500`) - Reasoning
   - **Orange** (`bg-orange-600`, `text-orange-400`, `border-orange-500`) - Reflection
 - Semantic colors:
   - Red (`text-red-400`, `border-red-900/30`) - "Story" (interpretation)
   - Green (`text-green-400`, `border-green-900/30`) - "Reality" (facts)
+- Idea Triage bucket colors:
+  - Green (`bg-green-900/20`, `border-green-500`) - Active Sprint
+  - Yellow (`bg-yellow-900/20`, `border-yellow-500`) - Waiting Room
+  - Slate (`bg-slate-900/50`, `border-slate-500`) - Graveyard
 
 **Custom Animations (cognitive-gym.html:18-30):**
 - `fade-in` keyframe: opacity 0→1, translateY 10px→0, 0.3s ease-out
@@ -159,6 +171,12 @@ Three core functions manage persistence (cognitive-gym.html:44-87):
 ## Framework Principles
 
 The application implements exercises from `three-pillars-of-thinking.md`:
+
+**Pillar 0: Focus (The Foundation)**
+- Manages attention and channels creative energy
+- Daily Focus Lock: Morning intention setting + evening accountability review
+- Idea Triage System: 3-bucket prioritization (Active Sprint, Waiting Room, Graveyard)
+- Trains ruthless prioritization and prevents "abundance paralysis"
 
 **Pillar 1: Observation**
 - Trains seeing reality without ego filters
