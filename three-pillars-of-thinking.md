@@ -6,9 +6,11 @@ Use it as-is or adapt it.
 
 ---
 
-# **I. THE THREE PILLARS OF THINKING**
+# **I. THE FOUNDATION + THREE PILLARS OF THINKING**
 
 Everything falls into these:
+
+**0. Focus** – managing attention and prioritizing what matters (the foundation)
 
 1. **Observation** – seeing reality clearly
 
@@ -16,11 +18,81 @@ Everything falls into these:
 
 3. **Reflection** – evaluating actions \+ improving next time
 
-Train all three → clear thinker.
+Train all four → clear thinker with directed energy.
 
 ---
 
-# **II. TRAINING PILLAR 1: OBSERVATION**
+# **II. TRAINING PILLAR 0: FOCUS (The Foundation)**
+
+This comes first.
+Most people drown in possibilities—especially creative, high-agency thinkers.
+Without focus, you scatter energy across 100 ideas and finish none.
+
+### **A. The Daily Focus Lock**
+
+Every morning, answer these:
+
+1. **"What am I choosing to focus on today?"**
+   Pick ONE primary focus. Write it down.
+
+2. **"What am I choosing to ignore today?"**
+   Name 2-3 things you'll deliberately not do. This makes the tradeoff visible.
+
+3. **"Why is this the right choice?"**
+   One sentence justifying your priority.
+
+Every evening, answer:
+
+1. **"Did I stick to my focus?"** (Yes/No)
+
+2. **"If not, what pulled me away?"**
+
+3. **"Was it worth it?"**
+
+This builds **focus discipline** and makes you conscious of your attention.
+
+### **B. The Idea Triage System**
+
+When an idea arrives (and they will), run it through this filter:
+
+**1. CAPTURE** – Write it down in one sentence. Get it out of your head.
+
+**2. REALITY CHECK** – Ask: "Is this solving a real problem I have *right now*?"
+
+**3. THE FORCING QUESTION** – "If I could only work on ONE thing this week, is this it?"
+
+Then sort into one of three buckets:
+
+* **ACTIVE SPRINT** (Max 3 items) – Currently executing. Gets all focused time.
+* **WAITING ROOM** (Max 10 items) – Good ideas, wrong timing. Review weekly.
+* **GRAVEYARD** (Unlimited) – Everything else. You can resurrect later, but you won't.
+
+This trains **ruthless prioritization**.
+
+### **C. The Weekly Priority Reset**
+
+Once per week, answer these 5 questions:
+
+1. **"What's the ONE project that would unlock the most value right now?"**
+
+2. **"Which ideas are ego-driven vs impact-driven?"**
+   Ego = "wouldn't it be cool if..."
+   Impact = "this solves X pain I actually have"
+
+3. **"What unfinished work is creating mental debt?"**
+   Finish it or kill it. Limbo destroys focus.
+
+4. **"What ideas keep recurring?"**
+   If an idea comes back 3+ times, it deserves serious evaluation.
+
+5. **"What am I avoiding by chasing new ideas?"**
+   This is the real question. Often we generate ideas to avoid hard work.
+
+This builds **strategic clarity** and prevents creative avoidance.
+
+---
+
+# **III. TRAINING PILLAR 1: OBSERVATION**
 
 This is the foundation.  
  Most people see the world through ego filters, assumptions, and autopilot.
@@ -55,7 +127,7 @@ This teaches separating facts from interpretation — a top-1% skill.
 
 ---
 
-# **III. TRAINING PILLAR 2: REASONING**
+# **IV. TRAINING PILLAR 2: REASONING**
 
 This is the engine.  
  You build it the way you build strength: reps, load, progression.
@@ -115,7 +187,7 @@ This is the exact skill good engineers, strategists, and mathematicians have.
 
 ---
 
-# **IV. TRAINING PILLAR 3: REFLECTION**
+# **V. TRAINING PILLAR 3: REFLECTION**
 
 This locks in improvement.  
  Without reflection, people repeat the same year 50 times and call it a life.
@@ -153,7 +225,7 @@ This builds **internal locus of control**.
 
 ---
 
-# **V. BONUS TRAINING: VERBAL THINKING**
+# **VI. BONUS TRAINING: VERBAL THINKING**
 
 This is crucial in teenagers **and adults who learned to think silently.**
 
@@ -183,7 +255,7 @@ This forces precision and reveals gaps.
 
 ---
 
-# **VI. TRAINING THAT BUILDS LONG-TERM ADVANTAGE**
+# **VII. TRAINING THAT BUILDS LONG-TERM ADVANTAGE**
 
 These are *compounding* habits.
 
@@ -205,7 +277,7 @@ This is the cornerstone of cognitive grit.
 
 ---
 
-# **VII. The Meta-Skill: Auditing Your Own Thoughts**
+# **VIII. The Meta-Skill: Auditing Your Own Thoughts**
 
 Once per week, ask yourself:
 
@@ -223,9 +295,11 @@ This alone will transform your clarity.
 
 ---
 
-# **VIII. Your Daughter’s Advantage (And Yours Too)**
+# **IX. Your Daughter's Advantage (And Yours Too)**
 
 If she learns to:
+
+* focus deliberately
 
 * observe clearly
 
