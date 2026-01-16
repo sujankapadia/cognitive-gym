@@ -1,11 +1,12 @@
 # Cognitive Workout
 
-A personal cognitive training application based on the "Three Pillars of Thinking" framework.
+A personal cognitive training application based on the "Foundation + Three Pillars of Thinking" framework.
 
 ## Overview
 
-The Cognitive Workout helps you develop three fundamental thinking skills:
+The Cognitive Workout helps you develop four fundamental thinking skills:
 
+0. **Focus** - Managing attention and channeling creative energy (the foundation)
 1. **Observation** - Seeing reality clearly without ego filters
 2. **Reasoning** - Connecting ideas logically and building strong arguments
 3. **Reflection** - Evaluating actions and locking in improvements
@@ -17,6 +18,10 @@ Simply open `cognitive-gym.html` in your web browser. No installation or build p
 The application runs entirely offline and stores your training data locally in your browser's localStorage.
 
 ## Features
+
+### Focus Tools
+- **Daily Focus Lock** - Morning intention setting (what to focus on, what to ignore, why) with evening accountability review
+- **Idea Triage** - Capture ideas and sort into 3 buckets (Active Sprint, Waiting Room, Graveyard) with forced justification
 
 ### Observation Tools
 - **Reality Snapshot** - Record objective observations without interpretation
